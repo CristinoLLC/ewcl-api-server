@@ -1,38 +1,62 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import os
-import sys
-
-# Ensure Render finds this ASGI app
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import io
+import random
 
 app = FastAPI()
 
-# Allow frontend to connect
+# Allow connections from frontend (e.g., Vercel)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can specify your Vercel domain here
+    allow_origins=["*"],  # You can restrict this to your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"message": "EWCL API is live"}
+# --- 🔬 EWCL MOCK ENGINE (replace with your real logic) ---
+def compute_entropy_scores(pdb_file):
+    # Fake entropy values for 100 residues
+    return [round(random.uniform(0.1, 1.0), 3) for _ in range(100)]
 
+def find_hotspot(score_map):
+    # Return residue index with highest collapse likelihood
+    return score_map.index(max(score_map))
+
+def match_against_known(region_index):
+    # Simulate a match to a known structure
+    return f"Match: Region {region_index} resembles BRCA1 (simulated)"
+
+def run_ewcl_on_pdb(pdb_file):
+    scores = compute_entropy_scores(pdb_file)
+    hotspot = find_hotspot(scores)
+    matched = match_against_known(hotspot)
+
+    return {
+        "score_map": scores,
+        "top_residue": hotspot,
+        "matched_structure": matched
+    }
+
+# --- ✅ API Endpoint ---
 @app.post("/runrealewcltest")
 async def run_real_ewcl(file: UploadFile = File(...)):
     content = await file.read()
-    result = {
-        "filename": file.filename,
-        "size": len(content),
-        "status": "success",
-        "collapse_score": 0.828  # Placeholder value
-    }
-    return result
+    pdb_file = io.BytesIO(content)
 
-# Local development runner
-if __name__ == "__main__":
-    uvicorn.run("src.app.ewcl_api.main:app", host="0.0.0.0", port=10000)
+    try:
+        result = run_ewcl_on_pdb(pdb_file)
+        return {
+            "filename": file.filename,
+            "top_residue": result["top_residue"],
+            "collapse_scores": result["score_map"],
+            "match": result["matched_structure"],
+            "status": "success"
+        }
+    except Exception as e:
+        return {"error": str(e), "status": "fail"}
+
+# --- Optional Health Check ---
+@app.get("/")
+def root():
+    return {"message": "🧬 EWCL API is running"}
