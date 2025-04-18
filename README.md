@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EWCL Bio-Medicine Platform
+
+A scientific bio-medicine platform for analyzing and visualizing protein collapse behavior using the Entropy-Weighted Collapse Likelihood (EWCL) model.
+
+## Features
+
+- Interactive 3D protein visualization using Mol*
+- PDB and JSON file upload support
+- Real-time EWCL analysis
+- Entropy-based heatmaps and visualizations
+- Benchmark tracking via Firebase
+- Publication-ready outputs
+- ClinVar/Ensembl mutation tracking
+
+## Tech Stack
+
+- Frontend: Next.js 15, React 19, TypeScript
+- 3D Visualization: Mol*
+- Data Visualization: Plotly.js
+- Backend: FastAPI
+- Database: Firebase
+- Styling: Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- Python 3.8+
+- Firebase account
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/ewcl-protein-toolkit.git
+cd ewcl-protein-toolkit
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install frontend dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Install backend dependencies:
+```bash
+cd ewcl_toolkit
+pip install -r requirements.txt
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Set up Firebase:
+- Create a new Firebase project
+- Enable Authentication and Firestore
+- Add your Firebase configuration to `.env.local`
 
-## Learn More
+5. Start the development servers:
+```bash
+# Terminal 1 - Frontend
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Terminal 2 - Backend
+cd ewcl_toolkit
+uvicorn main:app --reload
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+ewcl-protein-toolkit/
+├── src/
+│   ├── app/              # Next.js app directory
+│   ├── components/       # React components
+│   └── lib/             # Utility functions
+├── ewcl_toolkit/        # Python backend
+│   ├── main.py          # FastAPI server
+│   └── requirements.txt # Python dependencies
+└── public/              # Static assets
+```
 
-## Deploy on Vercel
+## Usage
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Upload a protein structure (PDB or JSON format)
+2. View the 3D structure in the Mol* viewer
+3. Run EWCL analysis
+4. Explore the entropy maps and collapse likelihood visualizations
+5. Export results for publication
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Mol* for 3D protein visualization
+- Plotly.js for data visualization
+- FastAPI for the backend framework
+- Firebase for data storage and authentication
