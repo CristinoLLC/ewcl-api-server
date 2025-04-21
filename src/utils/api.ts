@@ -61,10 +61,22 @@ async function apiCall<T>(
 
 // EWCL-specific API calls
 export async function runRealEwcl(pdbPath: string): Promise<EwclResponse> {
-  return apiCall<EwclResponse>('/runrealewcltest', {
+  const response = await fetch('http://localhost:10000/runrealewcltest', {
     method: 'POST',
-    body: JSON.stringify({ pdb_path: pdbPath }),
-  })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pdb_path: pdbPath })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      errorData.message || `API call failed with status ${response.status}`,
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  return response.json();
 }
 
 // Additional EWCL-related API calls
@@ -86,6 +98,28 @@ export async function runEwclBatch(pdbPaths: string[]): Promise<{ [pdbPath: stri
     method: 'POST',
     body: JSON.stringify({ pdb_paths: pdbPaths }),
   })
+}
+
+// File-based EWCL test
+export async function runEWCLTest(file: File): Promise<EwclResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("http://localhost:10000/runrealewcltest", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      errorData.message || `EWCL test failed with status ${response.status}`,
+      response.status.toString(),
+      errorData
+    );
+  }
+
+  return response.json();
 }
 
 // Error handling utilities

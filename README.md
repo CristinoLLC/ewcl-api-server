@@ -1,105 +1,129 @@
-# EWCL Bio-Medicine Platform
+# EWCL Protein Toolkit
 
-A scientific bio-medicine platform for analyzing and visualizing protein collapse behavior using the Entropy-Weighted Collapse Likelihood (EWCL) model.
-
-## Features
-
-- Interactive 3D protein visualization using Mol*
-- PDB and JSON file upload support
-- Real-time EWCL analysis
-- Entropy-based heatmaps and visualizations
-- Benchmark tracking via Firebase
-- Publication-ready outputs
-- ClinVar/Ensembl mutation tracking
-
-## Tech Stack
-
-- Frontend: Next.js 15, React 19, TypeScript
-- 3D Visualization: Mol*
-- Data Visualization: Plotly.js
-- Backend: FastAPI
-- Database: Firebase
-- Styling: Tailwind CSS
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Python 3.8+
-- Firebase account
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/ewcl-protein-toolkit.git
-cd ewcl-protein-toolkit
-```
-
-2. Install frontend dependencies:
-```bash
-npm install
-```
-
-3. Install backend dependencies:
-```bash
-cd ewcl_toolkit
-pip install -r requirements.txt
-```
-
-4. Set up Firebase:
-- Create a new Firebase project
-- Enable Authentication and Firestore
-- Add your Firebase configuration to `.env.local`
-
-5. Start the development servers:
-```bash
-# Terminal 1 - Frontend
-npm run dev
-
-# Terminal 2 - Backend
-cd ewcl_toolkit
-uvicorn main:app --reload
-```
+## Overview
+The EWCL Protein Toolkit is a scientific web application for analyzing protein structures using the Entropy-Weighted Collapse Likelihood (EWCL) model. It provides researchers with tools to upload protein structures, visualize them in 3D, and analyze entropy and collapse metrics through an intuitive, research-focused interface.
 
 ## Project Structure
-
 ```
-ewcl-protein-toolkit/
+web-app/
 ├── src/
-│   ├── app/              # Next.js app directory
-│   ├── components/       # React components
-│   └── lib/             # Utility functions
-├── ewcl_toolkit/        # Python backend
-│   ├── main.py          # FastAPI server
-│   └── requirements.txt # Python dependencies
-└── public/              # Static assets
+│   ├── app/                    # Next.js app directory
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── MolstarViewer.tsx    # 3D protein visualization using Mol*
+│   │   │   ├── UploadDropzone.tsx   # File upload with drag-and-drop
+│   │   │   ├── EntropySummaryCard.tsx # Analysis summary display
+│   │   │   └── ui/            # UI component library (shadcn/ui)
+│   │   ├── ewcl-analysis/     # Analysis feature
+│   │   │   └── page.tsx       # Main analysis page
+│   │   ├── benchmarks/        # Benchmark viewing
+│   │   │   └── page.tsx       # Benchmark display page
+│   │   └── simulation/        # Simulation feature (future)
+│   ├── lib/                   # Utility functions
+│   │   ├── upload.ts          # File upload utilities
+│   │   └── utils.ts           # General utilities
+│   └── styles/                # Global styles
+└── public/                    # Static assets
 ```
 
-## Usage
+## Key Features
 
-1. Upload a protein structure (PDB or JSON format)
-2. View the 3D structure in the Mol* viewer
-3. Run EWCL analysis
-4. Explore the entropy maps and collapse likelihood visualizations
-5. Export results for publication
+### 🧬 Protein Visualization
+- Interactive 3D visualization using Mol* (Molstar)
+- Multiple representation styles:
+  - Cartoon (default)
+  - Surface
+  - Ball-and-stick
+  - Spacefill
+- Entropy-based coloring
+- Residue labeling
+- Responsive viewer that adapts to screen size
+
+### 📊 Analysis Tools
+- Upload and process PDB files
+- Real-time entropy analysis
+- Collapse likelihood prediction
+- Interactive charts and visualizations
+- Export capabilities for analysis results
+
+### 🔍 Scientific Interface
+- Clean, research-focused design
+- Clear data hierarchy and visualization
+- Intuitive controls and interactions
+- Scientific context and tooltips
+
+## Technical Stack
+- **Framework**: Next.js 14 with App Router
+- **3D Visualization**: Mol* (Molstar)
+- **UI Components**: 
+  - Tailwind CSS
+  - shadcn/ui
+  - Lucide icons
+- **State Management**: React Hooks
+- **File Handling**: react-dropzone
+- **Styling**: Tailwind CSS
+
+## Requirements
+- Node.js 18.x or later
+- npm or yarn package manager
+
+## Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd web-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. **Open in browser**
+   Visit `http://localhost:3000` in your browser
+
+## Development Guidelines
+
+### 🧪 Scientific Accuracy
+- Maintain scientific integrity in all visualizations
+- Ensure entropy calculations are clearly documented
+- Keep visualization parameters consistent with research standards
+- Protect IP by not exposing backend logic in public views
+
+### 🎨 UI/UX Principles
+- White background, black/slate-gray text, light borders
+- Use subtle gradients only for entropy/energy/biological meaning
+- Clean, readable sans-serif fonts (Inter, Roboto, Helvetica)
+- Prioritize clarity of scientific data over decorative animations
+- Build each section as an independent module
+- Keep side panels collapsible, use tabs for multi-tool pages
+
+### 🔧 Component Development
+- Build modular, reusable components
+- Separate logic from presentation
+- Document component props and usage
+- Include loading and error states
+- Follow the 2-step flow: Upload → Render
+- Ensure responsive design across devices
 
 ## Contributing
-
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
+[Add your license information here]
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Mol* for 3D protein visualization
-- Plotly.js for data visualization
-- FastAPI for the backend framework
-- Firebase for data storage and authentication
+## Contact
+[Add contact information for project maintainers]

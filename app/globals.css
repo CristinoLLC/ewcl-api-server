@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Mol* UI without direct import */
+.mol-viewer-container .msp-layout-region {
+  position: absolute;
+}
+
+.mol-viewer-container .msp-layout-static {
+  z-index: 10;
+}
+
+/* CSS uses this comment style, not // */
+/* Check for any hardcoded "Laboratory" text in this file and update it */

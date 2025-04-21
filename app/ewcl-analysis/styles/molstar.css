@@ -1,0 +1,28 @@
+.msp-plugin {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.msp-layout-region {
+  position: absolute;
+}
+
+.msp-layout-static {
+  z-index: 10;
+}
+
+.msp-viewport {
+  background: #f8f9fa;
+}
+
+.msp-btn {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+}
+
+.msp-btn:hover {
+  background: #f0f0f0;
+}

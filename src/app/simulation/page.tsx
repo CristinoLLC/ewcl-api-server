@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import ProteinViewer from '@/components/ProteinViewer'
 import RunEwclButton from '@/components/RunEwclButton'
-import { EwclResponse } from '@/utils/api'
+import { EwclResponse, runEWCLTest } from '@/utils/api'
 import { toast } from 'react-toastify'
 
 export default function SimulationPage() {
@@ -16,6 +16,34 @@ export default function SimulationPage() {
   })
   const [entropyScores, setEntropyScores] = useState<{ [residue: number]: number }>({})
   const [loading, setLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handleFileSubmit = async () => {
+    if (!selectedFile) {
+      toast.error('Please select a file first')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await runEWCLTest(selectedFile)
+      console.log("EWCL Result:", result)
+      setEntropyScores(result.scores)
+      toast.success('EWCL analysis completed successfully!')
+    } catch (error) {
+      console.error('EWCL analysis failed:', error)
+      toast.error('Failed to run EWCL analysis')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleEwclResponse = (response: EwclResponse) => {
     setLoading(false)
@@ -40,7 +68,7 @@ export default function SimulationPage() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow">
             <ProteinViewer
-              pdbUrl="/pdbs/test.pdb"
+              pdbUrl={selectedFile ? URL.createObjectURL(selectedFile) : "/pdbs/test.pdb"}
               entropyScores={entropyScores}
               visualizationOptions={{
                 showSurface: true,
@@ -59,6 +87,40 @@ export default function SimulationPage() {
 
         {/* Controls and results */}
         <div className="space-y-6">
+          {/* File Upload */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Upload PDB File</h2>
+            <div className="space-y-4">
+              <input
+                type="file"
+                accept=".pdb"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100"
+              />
+              <button
+                onClick={handleFileSubmit}
+                disabled={!selectedFile || loading}
+                className={`
+                  w-full px-4 py-2 rounded-md
+                  font-medium text-sm
+                  transition-colors duration-200
+                  ${(!selectedFile || loading)
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                  }
+                  text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                `}
+              >
+                {loading ? 'Analyzing...' : 'Analyze PDB File'}
+              </button>
+            </div>
+          </div>
+
           {/* EWCL Analysis */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">EWCL Analysis</h2>

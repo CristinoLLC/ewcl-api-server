@@ -1,0 +1,21 @@
+.molstar-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.msp-plugin {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+.msp-viewport-controls {
+  display: none !important;
+}
+
+.msp-btn {
+  background-color: #be123c !important;
+}
+
+.msp-btn:hover {
+  background-color: #9f1239 !important;
+}

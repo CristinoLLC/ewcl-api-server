@@ -1,15 +1,29 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+/**
+ * This file is part of the EWCL platform.
+ * Root layout component that provides the consistent header, navigation,
+ * and footer across all pages. Follows academic institution styling.
+ */
 
-const inter = Inter({ subsets: ["latin"] });
+import './globals.css'
+import { Inter, Crimson_Text } from 'next/font/google'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import Link from 'next/link'
+import type { Metadata } from "next"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const crimson = Crimson_Text({ 
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-crimson'
+})
 
 export const metadata: Metadata = {
-  title: "EWCL Bio-Medicine Platform",
-  description: "Scientific platform for analyzing and visualizing protein collapse behavior using the Entropy-Weighted Collapse Likelihood (EWCL) model",
-};
+  title: "EWCL Protein Toolkit",
+  description: "Analyze protein structures using the Entropy-Weighted Collapse Likelihood (EWCL) model",
+}
 
 export default function RootLayout({
   children,
@@ -17,26 +31,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
-          <nav className="bg-white shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex">
-                  <div className="flex-shrink-0 flex items-center">
-                    <span className="text-xl font-bold text-indigo-600">EWCL</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
-          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            {children}
-          </main>
-        </div>
+    <html lang="en" className={`${inter.variable} ${crimson.variable} h-full`}>
+      <body className={`${inter.className} flex min-h-full flex-col bg-white`}>
+        <Header />
+        <main className="flex-1 bg-slate-50">
+          {children}
+        </main>
+        <Footer />
         <ToastContainer position="bottom-right" />
       </body>
     </html>
-  );
+  )
 }

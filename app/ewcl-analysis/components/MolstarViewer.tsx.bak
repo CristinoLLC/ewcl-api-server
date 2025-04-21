@@ -1,0 +1,307 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { createPluginUI } from 'molstar/lib/mol-plugin-ui'
+import { PluginUIContext } from 'molstar/lib/mol-plugin-ui/context'
+import { PluginConfig } from 'molstar/lib/mol-plugin/config'
+import { StateTransforms } from 'molstar/lib/mol-plugin/state/transforms'
+import { StructureRepresentationPresetProvider } from 'molstar/lib/mol-plugin-state/builder/structure/representation-preset'
+import { Structure, StructureElement, StructureProperties } from 'molstar/lib/mol-model/structure'
+import { Color } from 'molstar/lib/mol-util/color'
+import { ColorTheme } from 'molstar/lib/mol-theme/color'
+import { ParamDefinition } from 'molstar/lib/mol-util/param-definition'
+import { PluginCommands } from 'molstar/lib/mol-plugin/commands'
+import { StructureSelectionQueries } from 'molstar/lib/mol-plugin-state/helpers/structure-selection-query'
+import { Script } from 'molstar/lib/mol-script/script'
+import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder'
+import { ColorNames } from 'molstar/lib/mol-util/color/names'
+import { UpdateTrajectory } from 'molstar/lib/mol-plugin-state/actions/structure'
+
+interface MolstarViewerProps {
+  fileUrl: string | null
+  residueEntropyMap?: Record<string, number>
+  selectedChain?: string
+  viewerMode?: 'cartoon' | 'surface' | 'ball'
+}
+
+export default function MolstarViewer({
+  fileUrl,
+  residueEntropyMap = {},
+  selectedChain = 'A',
+  viewerMode = 'cartoon'
+}: MolstarViewerProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const pluginRef = useRef<PluginUIContext | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [structureRef, setStructureRef] = useState<any>(null)
+  
+  // Initialize the plugin once
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    // Clean up any existing plugin
+    if (pluginRef.current) {
+      pluginRef.current.dispose()
+    }
+    
+    const options = {
+      config: [
+        [
+          PluginConfig.General.DisableAntialiasing,
+          true
+        ],
+        [
+          PluginConfig.General.DefaultPDBProvider,
+          'pdbe'
+        ],
+      ]
+    }
+    
+    pluginRef.current = createPluginUI(containerRef.current, options)
+    
+    // Clean up on unmount
+    return () => {
+      if (pluginRef.current) {
+        pluginRef.current.dispose()
+        pluginRef.current = null
+      }
+    }
+  }, [])
+
+  // Load structure when fileUrl changes
+  useEffect(() => {
+    const loadStructure = async () => {
+      if (!pluginRef.current || !fileUrl) return
+      
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        // Clear previous structure
+        await pluginRef.current.clear()
+        
+        // Determine file format from URL
+        const format = fileUrl.toLowerCase().endsWith('.pdb') 
+          ? 'pdb'
+          : fileUrl.toLowerCase().endsWith('.cif') || fileUrl.toLowerCase().endsWith('.mmcif')
+            ? 'mmcif' 
+            : 'pdb' // Default to PDB
+            
+        // Load new structure
+        const data = await pluginRef.current.builders.data.download({ url: fileUrl }, { state: { isGhost: false } })
+        const trajectory = await pluginRef.current.builders.structure.parseTrajectory(data, format)
+        const model = await pluginRef.current.builders.structure.createModel(trajectory)
+        const structure = await pluginRef.current.builders.structure.createStructure(model)
+        
+        // Save structure reference for later use
+        setStructureRef(structure)
+        
+        // Apply representation based on viewerMode
+        applyRepresentation(viewerMode)
+        
+        // Apply entropy coloring if available
+        if (Object.keys(residueEntropyMap).length > 0) {
+          applyEntropyColoring(structure.data, residueEntropyMap)
+        }
+
+      } catch (err) {
+        console.error('Error loading structure:', err)
+        setError('Failed to load structure. Please check the file format and try again.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadStructure()
+  }, [fileUrl])
+  
+  // Update when selectedChain changes
+  useEffect(() => {
+    if (!pluginRef.current || !structureRef) return
+    
+    const updateChainVisibility = async () => {
+      try {
+        // Hide all chains first
+        const hideAllScript = MS.struct.generator.all()
+        await pluginRef.current?.builders.structure.representation.addSelection({ 
+          label: 'hide-all', 
+          script: hideAllScript 
+        }, { visible: false })
+        
+        // Show only the selected chain
+        const showChainScript = MS.struct.generator.atomGroups({
+          'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), selectedChain])
+        })
+        await pluginRef.current?.builders.structure.representation.addSelection({ 
+          label: 'show-chain', 
+          script: showChainScript 
+        }, { visible: true })
+
+        // Apply representation based on viewerMode
+        applyRepresentation(viewerMode)
+        
+        // Apply entropy coloring if available
+        if (structureRef.data && Object.keys(residueEntropyMap).length > 0) {
+          applyEntropyColoring(structureRef.data, residueEntropyMap)
+        }
+      } catch (err) {
+        console.error('Error updating chain visibility:', err)
+      }
+    }
+    
+    updateChainVisibility()
+  }, [selectedChain, structureRef])
+  
+  // Update representation when viewerMode changes
+  useEffect(() => {
+    if (!pluginRef.current || !structureRef) return
+    applyRepresentation(viewerMode)
+  }, [viewerMode, structureRef])
+  
+  // Update coloring when residueEntropyMap changes
+  useEffect(() => {
+    if (!pluginRef.current || !structureRef || !structureRef.data) return
+    if (Object.keys(residueEntropyMap).length === 0) return
+    
+    applyEntropyColoring(structureRef.data, residueEntropyMap)
+  }, [residueEntropyMap, structureRef])
+  
+  // Helper function to apply representation based on viewerMode
+  const applyRepresentation = async (mode: string) => {
+    if (!pluginRef.current || !structureRef) return
+    
+    try {
+      // Remove existing representations
+      await pluginRef.current.builders.structure.representation.clear()
+      
+      // Apply new representation
+      switch (mode) {
+        case 'surface':
+          await pluginRef.current.builders.structure.representation.addRepresentation(structureRef, {
+            type: 'molecular-surface',
+            color: 'chain-id',
+            alpha: 0.9
+          })
+          break
+          
+        case 'ball':
+          await pluginRef.current.builders.structure.representation.addRepresentation(structureRef, {
+            type: 'ball-and-stick',
+            color: 'element-symbol',
+            sizeTheme: { name: 'uniform', params: { value: 0.25 } }
+          })
+          break
+          
+        case 'cartoon':
+        default:
+          await pluginRef.current.builders.structure.representation.addRepresentation(structureRef, {
+            type: 'cartoon',
+            color: 'chain-id',
+            sizeTheme: { name: 'uniform', params: { value: 0.5 } }
+          })
+          break
+      }
+    } catch (err) {
+      console.error('Error applying representation:', err)
+    }
+  }
+  
+  // Helper function to apply entropy coloring
+  const applyEntropyColoring = async (structure: Structure, entropyMap: Record<string, number>) => {
+    if (!pluginRef.current) return
+    
+    try {
+      // Register entropy coloring theme
+      ColorTheme.getColorThemeRegistry().add({
+        name: 'entropy-coloring',
+        label: 'Entropy',
+        category: ColorTheme.Category.Atom,
+        factory: (params: {} = {}) => {
+          return ColorTheme.fromColor((location: StructureElement.Location) => {
+            const entityIndex = StructureElement.Location.isValid(location) 
+              ? location.element 
+              : -1
+            
+            if (entityIndex < 0) return ColorNames.grey
+            
+            const residueIndex = StructureProperties.residue.label_seq_id(location)
+            const residueIndexStr = residueIndex.toString()
+            
+            // Get entropy value for this residue
+            const entropyValue = entropyMap[residueIndexStr] ?? 0
+            
+            // Color based on entropy: blue (ordered) to red (disordered)
+            if (entropyValue < 0.25) {
+              return ColorNames.blue // Very ordered
+            } else if (entropyValue < 0.5) {
+              return ColorNames.lightblue // Ordered
+            } else if (entropyValue < 0.75) {
+              return ColorNames.yellow // Flexible/transitional
+            } else {
+              return ColorNames.red // Disordered
+            }
+          })
+        },
+        getParams: () => ({}),
+        defaultValues: ParamDefinition.getDefaultValues({}),
+        isApplicable: (ctx: any) => !!ctx.structure
+      })
+      
+      // Apply entropy coloring to current representation
+      await PluginCommands.State.ApplyActionToStructureRepresentations(pluginRef.current, {
+        action: (params) => {
+          return {
+            name: 'color-theme',
+            params: {
+              name: 'entropy-coloring',
+              params: {}
+            }
+          }
+        }
+      })
+    } catch (err) {
+      console.error('Error applying entropy coloring:', err)
+    }
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="absolute inset-0 mol-viewer-container" />
+      
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-600 border-t-transparent"></div>
+            <span className="mt-3 text-gray-700">Loading structure...</span>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-4 shadow-lg rounded-md max-w-md">
+            <div className="text-red-500 font-medium mb-2">Error</div>
+            <div className="text-gray-700">{error}</div>
+          </div>
+        </div>
+      )}
+      
+      {!fileUrl && !isLoading && !error && (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+          <div className="text-center p-6">
+            <div className="text-lg mb-2">No structure loaded</div>
+            <div className="text-sm">Upload a PDB file or select a sample to begin</div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .mol-viewer-container {
+          position: relative;
+          z-index: 0;
+        }
+      `}</style>
+    </div>
+  )
+}
