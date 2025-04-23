@@ -1,82 +1,42 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
+import { initializeApp } from 'firebase/app'
+import { getFirestore } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { db } from './firebase' // Ensure this is your Firestore instance
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyB097-VYGl5aNEsqmvQrQBOfDSh1x0m8gs",
-  authDomain: "benchmarks--ewcl.firebaseapp.com",
-  projectId: "benchmarks--ewcl",
-  storageBucket: "benchmarks--ewcl.firebasestorage.app",
-  messagingSenderId: "844216373624",
-  appId: "1:844216373624:web:23b830d43a9fcdd284f88d",
-  measurementId: "G-YXN8NGZQYY"
-};
-
-// Initialize Firebase with SSR safety checks
-let app;
-let analytics;
-let db;
-
-// Only initialize Firebase on the client side
-if (typeof window !== 'undefined' && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  
-  // Analytics is only available on client side
-  try {
-    analytics = getAnalytics(app);
-  } catch (error) {
-    console.error("Analytics initialization error:", error);
-  }
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCm7qPXTMC95Af3dJpEE1TGG1wWDt0S3Tg',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'ewcl-platform.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'ewcl-platform',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'ewcl-platform.appspot.com',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '951574725278',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:951574725278:web:3974b027d57380c79c0559',
 }
 
-export interface AnalysisData {
-  name: string;
-  score: number;
-  entropyMap: Record<string, number>;
-  timestamp: number;
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig)
 
-// Function to save analysis data to Firestore
-export async function saveAnalysisToFirestore(data: AnalysisData) {
-  if (!db) {
-    console.error("Firebase not initialized - client-side only");
-    alert("Could not save to Firebase - only works in browser");
-    return null;
-  }
-  
-  try {
-    const docRef = await addDoc(collection(db, "analyses"), {
-      ...data,
-      timestamp: new Date()
-    });
-    console.log("Analysis saved with ID:", docRef.id);
-    return docRef.id;
-  } catch (error) {
-    console.error("Error saving analysis:", error);
-    alert("Failed to save analysis to Firebase. Please try again.");
-    return null;
-  }
-}
+// Export Firestore and Storage
+export const db = getFirestore(app)
+export const storage = getStorage(app)
 
-// Function to get user's analysis history
-export async function getUserAnalysisHistory(limit = 10) {
-  if (!db) return [];
-  
+// Export Firebase app
+export default app
+
+// Fetch benchmarks from Firestore
+export async function fetchBenchmarks() {
   try {
-    const querySnapshot = await getDocs(
-      query(collection(db, "analyses"), 
-            orderBy("timestamp", "desc"), 
-            limit(limit))
-    );
-    
-    return querySnapshot.docs.map(doc => ({
+    const benchmarksRef = collection(db, 'benchmarks') // Replace 'benchmarks' with your Firestore collection name
+    const q = query(benchmarksRef, orderBy('createdAt', 'desc')) // Adjust query as needed
+    const querySnapshot = await getDocs(q)
+    const benchmarks = querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
-    }));
+      ...doc.data(),
+    }))
+    return benchmarks
   } catch (error) {
-    console.error("Error fetching analysis history:", error);
-    return [];
+    console.error('Error fetching benchmarks:', error)
+    throw error
   }
 }
