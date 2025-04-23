@@ -1,11 +1,12 @@
 import sys
 import os
+import json
+import requests
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from ewcl_toolkit.ewcl_static_tool_colab import run_ewcl_on_pdb  # ✅ Import your real function
 import uvicorn
-import os
 from pydantic import BaseModel
 import joblib
 import numpy as np
@@ -73,3 +74,18 @@ def run_ai_model(input: EntropyInput):
 # Optional local run
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=10000)
+
+# Load the entropy data from a JSON file
+data = json.load(open("your-entropy.json"))
+
+# Convert entropyMap (dict) to a list of values
+entropy_list = list(data["entropyMap"].values())
+
+# Send the POST request to the API
+response = requests.post(
+    "https://ewcl-platform.onrender.com/runaiinference",
+    json={"entropy": entropy_list}
+)
+
+# Print the response
+print(response.json())
