@@ -75,8 +75,6 @@ def run_ai_model(input: EntropyInput):
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=10000)
 
-# Load the entropy data from a JSON file
-data = json.load(open("your-entropy.json"))
 
 # Convert entropyMap (dict) to a list of values
 entropy_list = list(data["entropyMap"].values())
