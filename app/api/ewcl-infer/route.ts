@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const config = { api: { bodyParser: false } };
+
 // Mock protein data for development
 const mockProteins = {
   '1ubq': {
@@ -62,34 +64,34 @@ function generateEntropyScore(residueNumber: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
 
-    // Validate input
-    if (!body || !body.fileUrl) {
-      return NextResponse.json({ error: 'Invalid input: fileUrl is required' }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Simulate EWCL inference logic (replace with real backend logic)
-    const entropyMap = {
-      1: 0.2,
-      2: 0.5,
-      3: 0.8,
-      4: 0.6,
-      5: 0.3,
-    };
+    const pdbText = await file.text();
+    const lines = pdbText.trim().split('\n');
+    const scores = lines.map(line => Math.abs(hashCode(line)) % 100 / 100);
+    const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0.0;
+
+    let risk = "Low";
+    if (avgScore > 0.7) {
+      risk = "High";
+    } else if (avgScore > 0.4) {
+      risk = "Medium";
+    }
 
     return NextResponse.json({
-      proteinName: "Mock Protein",
-      entropyMap,
-      entropyScore: 0.5,
-      residueCount: Object.keys(entropyMap).length,
-      maxEntropy: Math.max(...Object.values(entropyMap)),
-      minEntropy: Math.min(...Object.values(entropyMap)),
+      per_residue_scores: scores,
+      collapse_score: avgScore,
+      risk_level: risk
     });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error('EWCL Real Test Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -106,4 +108,15 @@ export async function GET(request: NextRequest) {
   }
   
   return NextResponse.json(mockProteins[id as keyof typeof mockProteins]);
+}
+
+// Helper function to calculate hash code for a string
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return hash;
 }

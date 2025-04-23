@@ -1,0 +1,161 @@
+'use client'
+
+import * as React from 'react'
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, 
+  Legend, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar,
+  AreaChart, Area
+} from 'recharts'
+import { Timestamp } from 'firebase/firestore'
+import { useState } from 'react'
+import { saveAs } from 'file-saver'
+import Modal from 'react-modal'
+import MolViewer from './MolViewer' // Assuming you have a MolViewer component
+
+// Import the Benchmark interface from your table component
+interface Benchmark {
+  id: string
+  proteinName: string
+  avgScore: number
+  collapseScore: number
+  maxEntropyResidue: number
+  riskLevel: 'Low' | 'Medium' | 'High'
+  timestamp: Timestamp // <-- explicitly typed
+  length?: number
+}
+
+interface BenchmarkStatsProps {
+  benchmarks: Benchmark[]
+}
+
+const COLORS = {
+  Low: '#10B981', // Green
+  Medium: '#F59E0B', // Yellow/Amber
+  High: '#EF4444', // Red
+}
+
+export default function BenchmarkStats({ benchmarks }: BenchmarkStatsProps) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [riskLevel, setRiskLevel] = useState<string>('All')
+  const [filteredBenchmarks, setFilteredBenchmarks] = useState<Benchmark[]>(benchmarks)
+  const [modalIsOpen, setModalIsOpen] = useState(false)
+  const [selectedBenchmark, setSelectedBenchmark] = useState<Benchmark | null>(null)
+
+  // Filter benchmarks based on search term, date range, and risk level
+  const filterBenchmarks = () => {
+    const filtered = benchmarks.filter(benchmark => {
+      const date = benchmark.timestamp.toDate().toISOString().split('T')[0]
+      const matchesSearch = benchmark.proteinName.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesDateRange = (!startDate || date >= startDate) && (!endDate || date <= endDate)
+      const matchesRiskLevel = riskLevel === 'All' || benchmark.riskLevel === riskLevel
+
+      return matchesSearch && matchesDateRange && matchesRiskLevel
+    })
+    setFilteredBenchmarks(filtered)
+  }
+
+  // Export filtered benchmarks to CSV
+  const exportToCSV = () => {
+    const csvRows = [
+      ['ID', 'Protein Name', 'Avg Score', 'Collapse Score', 'Risk Level', 'Timestamp'],
+      ...filteredBenchmarks.map(b => [
+        b.id,
+        b.proteinName,
+        b.avgScore,
+        b.collapseScore,
+        b.riskLevel,
+        b.timestamp.toDate().toISOString(),
+      ]),
+    ]
+    const csvContent = csvRows.map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    saveAs(blob, 'filtered_benchmarks.csv')
+  }
+
+  const openModal = (benchmark: Benchmark) => {
+    setSelectedBenchmark(benchmark)
+    setModalIsOpen(true)
+  }
+
+  const closeModal = () => {
+    setModalIsOpen(false)
+    setSelectedBenchmark(null)
+  }
+
+  return (
+    <div className="space-y-8">
+      <h3 className="text-xl font-semibold text-gray-800">Benchmark Analytics</h3>
+
+      {/* Filters */}
+      <div className="flex space-x-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search by Protein Name"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border rounded p-2"
+        />
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border rounded p-2"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border rounded p-2"
+        />
+        <select
+          value={riskLevel}
+          onChange={(e) => setRiskLevel(e.target.value)}
+          className="border rounded p-2"
+        >
+          <option value="All">All Risk Levels</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+        <button onClick={filterBenchmarks} className="bg-blue-500 text-white rounded p-2">
+          Filter
+        </button>
+        <button onClick={exportToCSV} className="bg-green-500 text-white rounded p-2">
+          Export to CSV
+        </button>
+      </div>
+
+      {/* Benchmark Table */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filteredBenchmarks.map(benchmark => (
+          <div key={benchmark.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <h4 className="text-md font-medium mb-2">{benchmark.proteinName}</h4>
+            <p>Avg Score: {benchmark.avgScore}</p>
+            <p>Collapse Score: {benchmark.collapseScore}</p>
+            <p>Risk Level: {benchmark.riskLevel}</p>
+            <p>Timestamp: {benchmark.timestamp.toDate().toLocaleString()}</p>
+            <button
+              onClick={() => openModal(benchmark)}
+              className="mt-2 bg-blue-500 text-white rounded p-2"
+            >
+              View 3D
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal for 3D Viewer */}
+      <Modal isOpen={modalIsOpen} onRequestClose={closeModal}>
+        <h2 className="text-xl font-semibold">3D Structure Viewer</h2>
+        {selectedBenchmark && (
+          <MolViewer pdbFile={selectedBenchmark.id} entropyMap={selectedBenchmark.maxEntropyResidue} />
+        )}
+        <button onClick={closeModal} className="mt-4 bg-red-500 text-white rounded p-2">
+          Close
+        </button>
+      </Modal>
+    </div>
+  )
+}
